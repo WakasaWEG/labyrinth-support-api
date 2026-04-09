@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лидерборд</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            text-align: left;
+            padding: 12px 14px;
+            border-bottom: 1px solid #333;
+        }
+
+        .leaderboard-table th {
+            color: #fff;
+            background: #111;
+        }
+
+        .leaderboard-table tr:nth-child(even) {
+            background: #171717;
+        }
+
+        .leaderboard-table tr:nth-child(odd) {
+            background: #1f1f1f;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="container">
+        <div class="navbar">
+            <h1>Лидерборд</h1>
+            <div class="actions">
+                <a class="button-link button-secondary" href="menu.html">Назад</a>
+                <button id="refreshBtn">Обновить</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Список игроков</h3>
+            <div id="leaderboardBox">Загрузка...</div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+async function loadLeaderboard() {
+    const res = await apiRequest("/leaderboard/", "GET", null, true);
+
+    if (!res.data.ok) {
+        document.getElementById("leaderboardBox").innerHTML = "<p>Не удалось загрузить лидерборд</p>";
+        return;
+    }
+
+    const items = res.data.data.items;
+
+    let html = `
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Место</th>
+                    <th>Ник</th>
+                    <th>Очки</th>
+                    <th>Вылазок</th>
+                    <th>Успешных</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    items.forEach(i => {
+        html += `
+            <tr>
+                <td>${i.rank}</td>
+                <td>${i.nickname}</td>
+                <td>${i.score}</td>
+                <td>${i.runsCount ?? 0}</td>
+                <td>${i.winsCount ?? 0}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("leaderboardBox").innerHTML = html;
+}
+
+document.getElementById("refreshBtn").onclick = loadLeaderboard;
+loadLeaderboard();
+</script>
+</body>
+</html>

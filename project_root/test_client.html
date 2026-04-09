@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Labyrinth Support API Test Client</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1e1e1e;
+            color: #f5f5f5;
+        }
+
+        h1, h2 {
+            margin: 0 0 12px 0;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 24px;
+            padding: 18px;
+            background: #2b2b2b;
+            border-radius: 10px;
+        }
+
+        .topbar-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .topbar-right {
+            width: 320px;
+            flex-shrink: 0;
+        }
+
+        .muted {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        input, textarea {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 6px;
+            background: #111;
+            color: #fff;
+        }
+
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+            font-family: Consolas, monospace;
+            line-height: 1.45;
+        }
+
+        button {
+            background: #0f62fe;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: background 0.15s ease;
+        }
+
+        button:hover {
+            background: #0353e9;
+        }
+
+        .token-card,
+        .response-card {
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .card {
+            background: #2b2b2b;
+            border-radius: 10px;
+            padding: 16px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .card.full {
+            grid-column: 1 / -1;
+        }
+
+        .token-box {
+            font-size: 14px;
+            color: #ccc;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        pre {
+            background: #111;
+            color: #9ef39f;
+            padding: 12px;
+            border-radius: 6px;
+            overflow: auto;
+            min-height: 180px;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 900px) {
+            .topbar {
+                flex-direction: column;
+            }
+
+            .topbar-right {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card.full {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Labyrinth Support API Test Client</h1>
+            <div class="muted">Проверка health, db, register, login, profile, run start, run finish</div>
+        </div>
+
+        <div class="topbar-right">
+            <label for="baseUrl">Base URL</label>
+            <input id="baseUrl" value="http://127.0.0.1:5000/api/v1" />
+        </div>
+    </div>
+
+    <div class="card token-card">
+        <h2>JWT Token</h2>
+        <div id="tokenBox" class="token-box">Токен пока не получен</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Health</h2>
+            <button onclick="sendHealth()">GET /health/</button>
+            <button onclick="sendDbHealth()">GET /health/db</button>
+        </div>
+
+        <div class="card">
+            <h2>Register</h2>
+            <label for="registerBody">POST /auth/register</label>
+            <textarea id="registerBody">{
+  "email": "newplayer@example.com",
+  "password": "123456",
+  "nickname": "NewPlayer"
+}</textarea>
+            <button onclick="sendRegister()">Send Register</button>
+        </div>
+
+        <div class="card">
+            <h2>Login</h2>
+            <label for="loginBody">POST /auth/login</label>
+            <textarea id="loginBody">{
+  "email": "newplayer@example.com",
+  "password": "123456"
+}</textarea>
+            <button onclick="sendLogin()">Send Login</button>
+        </div>
+
+        <div class="card">
+            <h2>Profile</h2>
+            <button onclick="sendProfile()">GET /profile/</button>
+        </div>
+
+        <div class="card">
+            <h2>Run Start</h2>
+            <button onclick="sendRunStart()">POST /run/start</button>
+        </div>
+
+        <div class="card">
+            <h2>Run Finish</h2>
+            <label for="runFinishBody">POST /run/finish</label>
+            <textarea id="runFinishBody">{
+  "runId": 1,
+  "isSuccess": true,
+  "roomsVisited": 5,
+  "lootValue": 120,
+  "durationSeconds": 480
+}</textarea>
+            <button onclick="sendRunFinish()">Send Run Finish</button>
+        </div>
+
+        <div class="card">
+            <h2>Custom Request</h2>
+
+            <label for="customMethod">Method</label>
+            <input id="customMethod" value="GET" />
+
+            <label for="customPath">Path (например: /health/ или /auth/login)</label>
+            <input id="customPath" value="/profile/" />
+
+            <label for="customBody">Body (для POST)</label>
+            <textarea id="customBody">{}</textarea>
+
+            <button onclick="sendCustom()">Send Custom Request</button>
+        </div>
+
+        <div class="card full response-card">
+            <h2>Response</h2>
+            <pre id="responseBox">Здесь появится ответ сервера...</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    let accessToken = "";
+    let currentRunId = null;
+
+    function getBaseUrl() {
+        return document.getElementById("baseUrl").value.trim();
+    }
+
+    function setResponse(title, status, data) {
+        const box = document.getElementById("responseBox");
+        box.textContent =
+            `${title}\n\nHTTP Status: ${status}\n\n` +
+            `${typeof data === "string" ? data : JSON.stringify(data, null, 2)}`;
+    }
+
+    function setToken(token) {
+        accessToken = token || "";
+        const tokenBox = document.getElementById("tokenBox");
+        tokenBox.textContent = accessToken || "Токен пока не получен";
+    }
+
+    async function apiRequest(method, path, body = null, withAuth = false) {
+        const url = getBaseUrl() + path;
+
+        const headers = {
+            "Content-Type": "application/json"
+        };
+
+        if (withAuth && accessToken) {
+            headers["Authorization"] = `Bearer ${accessToken}`;
+        }
+
+        const options = {
+            method,
+            headers
+        };
+
+        if (body !== null) {
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            data = await response.text();
+        }
+
+        return {
+            status: response.status,
+            data
+        };
+    }
+
+    async function sendHealth() {
+        try {
+            const result = await apiRequest("GET", "/health/");
+            setResponse("GET /health/", result.status, result.data);
+        } catch (error) {
+            setResponse("GET /health/", 0, String(error));
+        }
+    }
+
+    async function sendDbHealth() {
+        try {
+            const result = await apiRequest("GET", "/health/db");
+            setResponse("GET /health/db", result.status, result.data);
+        } catch (error) {
+            setResponse("GET /health/db", 0, String(error));
+        }
+    }
+
+    async function sendRegister() {
+        try {
+            const body = JSON.parse(document.getElementById("registerBody").value);
+            const result = await apiRequest("POST", "/auth/register", body);
+            setResponse("POST /auth/register", result.status, result.data);
+        } catch (error) {
+            setResponse("POST /auth/register", 0, String(error));
+        }
+    }
+
+    async function sendLogin() {
+        try {
+            const body = JSON.parse(document.getElementById("loginBody").value);
+            const result = await apiRequest("POST", "/auth/login", body);
+
+            if (result.data && result.data.ok && result.data.data && result.data.data.accessToken) {
+                setToken(result.data.data.accessToken);
+            }
+
+            setResponse("POST /auth/login", result.status, result.data);
+        } catch (error) {
+            setResponse("POST /auth/login", 0, String(error));
+        }
+    }
+
+    async function sendProfile() {
+        try {
+            const result = await apiRequest("GET", "/profile/", null, true);
+            setResponse("GET /profile/", result.status, result.data);
+        } catch (error) {
+            setResponse("GET /profile/", 0, String(error));
+        }
+    }
+
+    async function sendRunStart() {
+        try {
+            const result = await apiRequest("POST", "/run/start", {}, true);
+
+            if (result.data && result.data.ok && result.data.data && result.data.data.runId) {
+                currentRunId = result.data.data.runId;
+
+                const runFinishBody = document.getElementById("runFinishBody");
+                let parsed = JSON.parse(runFinishBody.value);
+                parsed.runId = currentRunId;
+                runFinishBody.value = JSON.stringify(parsed, null, 2);
+            }
+
+            setResponse("POST /run/start", result.status, result.data);
+        } catch (error) {
+            setResponse("POST /run/start", 0, String(error));
+        }
+    }
+
+    async function sendRunFinish() {
+        try {
+            const body = JSON.parse(document.getElementById("runFinishBody").value);
+            const result = await apiRequest("POST", "/run/finish", body, true);
+            setResponse("POST /run/finish", result.status, result.data);
+        } catch (error) {
+            setResponse("POST /run/finish", 0, String(error));
+        }
+    }
+
+    async function sendCustom() {
+        try {
+            const method = document.getElementById("customMethod").value.trim().toUpperCase();
+            const path = document.getElementById("customPath").value.trim();
+            const rawBody = document.getElementById("customBody").value.trim();
+
+            let body = null;
+            if (method !== "GET" && rawBody) {
+                body = JSON.parse(rawBody);
+            }
+
+            const result = await apiRequest(method, path, body, true);
+            setResponse(`${method} ${path}`, result.status, result.data);
+        } catch (error) {
+            setResponse("Custom Request", 0, String(error));
+        }
+    }
+</script>
+</body>
+</html>

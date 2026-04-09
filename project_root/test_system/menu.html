@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Меню игрока</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+    <div class="container">
+        <div class="navbar">
+            <h1>Меню игрока</h1>
+            <div class="actions">
+                <button class="button-secondary" onclick="logout()">Выйти из аккаунта</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>JWT Token</h3>
+            <div id="tokenBox" class="token-box">Токен не сохранён</div>
+        </div>
+
+        <div class="actions">
+            <button id="loadProfileBtn">Загрузить профиль</button>
+            <a class="button-link" href="run.html">Открыть экран вылазки</a>
+            <a class="button-link" href="leaderboard.html">Открыть лидерборд</a>
+            <a class="button-link" href="history.html">История событий</a>
+        </div>
+
+        <div class="card">
+            <h3>Профиль</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>User ID</strong>
+                    <span id="userId">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Email</strong>
+                    <span id="email">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Никнейм</strong>
+                    <span id="nickname">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Уровень</strong>
+                    <span id="level">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>XP</strong>
+                    <span id="xp">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Soft Currency</strong>
+                    <span id="softCurrency">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Hard Currency</strong>
+                    <span id="hardCurrency">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Ответ сервера</h3>
+            <pre id="responseBox">Здесь появится ответ сервера...</pre>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderToken("tokenBox");
+
+document.getElementById("loadProfileBtn").addEventListener("click", async () => {
+    const result = await apiRequest("/profile/", "GET", null, true);
+    renderResponse("responseBox", "GET /profile/", result);
+
+    if (result.data && result.data.ok && result.data.data) {
+        const profile = result.data.data;
+        document.getElementById("userId").textContent = profile.userId ?? "—";
+        document.getElementById("email").textContent = profile.email ?? "—";
+        document.getElementById("nickname").textContent = profile.nickname ?? "—";
+        document.getElementById("level").textContent = profile.progress?.level ?? "—";
+        document.getElementById("xp").textContent = profile.progress?.xp ?? "—";
+        document.getElementById("softCurrency").textContent = profile.progress?.softCurrency ?? "—";
+        document.getElementById("hardCurrency").textContent = profile.progress?.hardCurrency ?? "—";
+    }
+});
+</script>
+</body>
+</html>

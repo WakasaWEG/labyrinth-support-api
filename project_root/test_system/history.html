@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История событий</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .history-table th,
+        .history-table td {
+            text-align: left;
+            padding: 12px 14px;
+            border-bottom: 1px solid #333;
+            vertical-align: top;
+        }
+
+        .history-table th {
+            color: #fff;
+            background: #111;
+        }
+
+        .history-table tr:nth-child(even) {
+            background: #171717;
+        }
+
+        .history-table tr:nth-child(odd) {
+            background: #1f1f1f;
+        }
+
+        .payload-box {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            color: #9ef39f;
+            background: #111;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 0;
+        }
+
+        .small-note {
+            color: #bbb;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="container">
+        <div class="navbar">
+            <h1>История событий</h1>
+            <div class="actions">
+                <a class="button-link button-secondary" href="menu.html">Назад</a>
+                <button id="refreshBtn">Обновить</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>JWT Token</h3>
+            <div id="tokenBox" class="token-box">Токен не сохранён</div>
+        </div>
+
+        <div class="card">
+            <h3>Информация</h3>
+            <p>
+                На этой странице отображаются игровые события текущего пользователя:
+                входы в комнаты, действия во время вылазки и другие события,
+                отправленные через backend.
+            </p>
+            <div class="small-note">
+                История загружается с endpoint: <strong>GET /api/v1/events/</strong>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>События</h3>
+            <div id="historyBox">Загрузка...</div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function renderUnauthorizedMessage(res) {
+    document.getElementById("historyBox").innerHTML = `
+        <p>Не удалось загрузить историю событий.</p>
+        <p>Скорее всего, токен отсутствует или истёк. Выполни вход заново через страницу авторизации.</p>
+        <pre class="payload-box">${JSON.stringify(res.data, null, 2)}</pre>
+    `;
+}
+
+async function loadHistory() {
+    renderToken("tokenBox");
+
+    const token = getToken();
+    if (!token) {
+        document.getElementById("historyBox").innerHTML = `
+            <p>JWT-токен не найден.</p>
+            <p>Сначала перейди на страницу авторизации и выполни вход.</p>
+        `;
+        return;
+    }
+
+    const res = await apiRequest("/events/", "GET", null, true);
+
+    if (!res.data || !res.data.ok) {
+        renderUnauthorizedMessage(res);
+        return;
+    }
+
+    const items = res.data.data.items || [];
+
+    if (items.length === 0) {
+        document.getElementById("historyBox").innerHTML = "<p>Событий пока нет.</p>";
+        return;
+    }
+
+    let html = `
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>runId</th>
+                    <th>Тип события</th>
+                    <th>Payload</th>
+                    <th>Дата</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    items.forEach(item => {
+        html += `
+            <tr>
+                <td>${item.id ?? "—"}</td>
+                <td>${item.runId ?? "—"}</td>
+                <td>${item.eventType ?? "—"}</td>
+                <td><pre class="payload-box">${JSON.stringify(item.payload ?? {}, null, 2)}</pre></td>
+                <td>${item.createdAt ?? "—"}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("historyBox").innerHTML = html;
+}
+
+document.getElementById("refreshBtn").onclick = loadHistory;
+loadHistory();
+</script>
+</body>
+</html>

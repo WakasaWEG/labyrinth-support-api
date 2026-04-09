@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+    <div class="container">
+        <div class="navbar">
+            <h1>Регистрация</h1>
+            <div class="actions">
+                <a class="button-link button-secondary" href="index.html">На главную</a>
+                <a class="button-link button-secondary" href="login.html">К авторизации</a>
+            </div>
+        </div>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="player@example.com">
+
+        <label for="password">Пароль</label>
+        <input id="password" type="password" placeholder="123456">
+
+        <label for="nickname">Никнейм</label>
+        <input id="nickname" type="text" placeholder="PlayerOne">
+
+        <div class="actions">
+            <button id="registerBtn">Зарегистрироваться</button>
+        </div>
+
+        <div class="card">
+            <h3>Ответ сервера</h3>
+            <pre id="responseBox">Здесь появится результат регистрации...</pre>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+document.getElementById("registerBtn").addEventListener("click", async () => {
+    const body = {
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        nickname: document.getElementById("nickname").value.trim()
+    };
+
+    const result = await apiRequest("/auth/register", "POST", body, false);
+    renderResponse("responseBox", "POST /auth/register", result);
+});
+</script>
+</body>
+</html>

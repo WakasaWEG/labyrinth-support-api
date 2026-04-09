@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вылазка</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+    <div class="container">
+        <div class="navbar">
+            <h1>Вылазка</h1>
+            <div class="actions">
+                <a class="button-link button-secondary" href="menu.html">Назад</a>
+                <a class="button-link button-secondary" href="leaderboard.html">Лидерборд</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <p>
+                Сначала нажми <strong>«Начать вылазку»</strong>.  
+                После этого можно отправлять события и завершать забег как успешный или неуспешный.
+            </p>
+        </div>
+
+        <div class="actions">
+            <button id="startRunBtn">Начать вылазку</button>
+            <button id="roomBtn">Войти в комнату</button>
+            <button id="finishSuccessBtn">Выйти (успех)</button>
+            <button id="finishFailBtn" class="button-secondary">Погибнуть</button>
+        </div>
+
+        <div class="card">
+            <h3>Текущий runId</h3>
+            <div id="runIdBox">—</div>
+        </div>
+
+        <div class="card">
+            <h3>Результат последней вылазки</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>runId</strong>
+                    <span id="resultRunId">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Статус</strong>
+                    <span id="resultStatus">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Успех</strong>
+                    <span id="resultSuccess">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Причина завершения</strong>
+                    <span id="resultReason">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>XP получено</strong>
+                    <span id="resultXp">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Soft Currency получено</strong>
+                    <span id="resultSoft">—</span>
+                </div>
+                <div class="info-item">
+                    <strong>Очки лидерборда</strong>
+                    <span id="resultLeaderboard">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Ответ сервера</h3>
+            <pre id="responseBox">Здесь будет лог...</pre>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function updateRunIdUI() {
+    const runId = getCurrentRunId();
+    document.getElementById("runIdBox").textContent = runId || "—";
+}
+
+function clearLastRunResultUI() {
+    document.getElementById("resultRunId").textContent = "—";
+    document.getElementById("resultStatus").textContent = "—";
+    document.getElementById("resultSuccess").textContent = "—";
+    document.getElementById("resultReason").textContent = "—";
+    document.getElementById("resultXp").textContent = "—";
+    document.getElementById("resultSoft").textContent = "—";
+    document.getElementById("resultLeaderboard").textContent = "—";
+}
+
+function renderLastRunResult(data) {
+    document.getElementById("resultRunId").textContent = data.runId ?? "—";
+    document.getElementById("resultStatus").textContent = data.status ?? "—";
+    document.getElementById("resultSuccess").textContent = data.isSuccess ? "Да" : "Нет";
+    document.getElementById("resultReason").textContent = data.endedReason ?? "—";
+    document.getElementById("resultXp").textContent = data.xpGained ?? 0;
+    document.getElementById("resultSoft").textContent = data.softCurrencyGained ?? 0;
+    document.getElementById("resultLeaderboard").textContent = data.leaderboardScoreGained ?? 0;
+}
+
+updateRunIdUI();
+clearLastRunResultUI();
+
+document.getElementById("startRunBtn").onclick = async () => {
+    const res = await apiRequest("/run/start", "POST", {}, true);
+
+    if (res.data.ok) {
+        saveCurrentRunId(res.data.data.runId);
+        updateRunIdUI();
+        clearLastRunResultUI();
+    }
+
+    renderResponse("responseBox", "POST /run/start", res);
+};
+
+document.getElementById("roomBtn").onclick = async () => {
+    const runId = getCurrentRunId();
+
+    if (!runId) {
+        renderResponse("responseBox", "POST /events/", {
+            status: 0,
+            data: {
+                ok: false,
+                error: {
+                    code: "NO_ACTIVE_RUN",
+                    message: "Сначала начни вылазку"
+                }
+            }
+        });
+        return;
+    }
+
+    const res = await apiRequest("/events/", "POST", {
+        eventType: "room_enter",
+        runId: Number(runId),
+        payload: {
+            roomNumber: Math.floor(Math.random() * 10) + 1,
+            roomType: "random_room"
+        }
+    }, true);
+
+    renderResponse("responseBox", "POST /events/", res);
+};
+
+document.getElementById("finishSuccessBtn").onclick = async () => {
+    const runId = getCurrentRunId();
+
+    if (!runId) {
+        renderResponse("responseBox", "POST /run/finish (success)", {
+            status: 0,
+            data: {
+                ok: false,
+                error: {
+                    code: "NO_ACTIVE_RUN",
+                    message: "Нет активной вылазки"
+                }
+            }
+        });
+        return;
+    }
+
+    const res = await apiRequest("/run/finish", "POST", {
+        runId: Number(runId),
+        isSuccess: true,
+        roomsVisited: 5,
+        lootValue: 150,
+        durationSeconds: 300
+    }, true);
+
+    if (res.data.ok) {
+        renderLastRunResult(res.data.data);
+        clearCurrentRunId();
+        updateRunIdUI();
+    }
+
+    renderResponse("responseBox", "POST /run/finish (success)", res);
+};
+
+document.getElementById("finishFailBtn").onclick = async () => {
+    const runId = getCurrentRunId();
+
+    if (!runId) {
+        renderResponse("responseBox", "POST /run/finish (death)", {
+            status: 0,
+            data: {
+                ok: false,
+                error: {
+                    code: "NO_ACTIVE_RUN",
+                    message: "Нет активной вылазки"
+                }
+            }
+        });
+        return;
+    }
+
+    const res = await apiRequest("/run/finish", "POST", {
+        runId: Number(runId),
+        isSuccess: false,
+        roomsVisited: 3,
+        lootValue: 50,
+        durationSeconds: 200
+    }, true);
+
+    if (res.data.ok) {
+        renderLastRunResult(res.data.data);
+        clearCurrentRunId();
+        updateRunIdUI();
+    }
+
+    renderResponse("responseBox", "POST /run/finish (death)", res);
+};
+</script>
+</body>
+</html>
